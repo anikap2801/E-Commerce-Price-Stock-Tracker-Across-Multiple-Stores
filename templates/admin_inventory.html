@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Admin - Inventory{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-md-2 sidebar p-3">
+            <h5 class="mb-3">Admin Panel</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_users') }}">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_products') }}">
+                        <i class="fas fa-box"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin_inventory') }}">
+                        <i class="fas fa-warehouse"></i> Inventory
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                        <i class="fas fa-chart-pie"></i> Analytics
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <div class="col-md-10 p-4">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2 class="mb-0"><i class="fas fa-warehouse"></i> Inventory Management</h2>
+                <a href="{{ url_for('admin_auto_restock') }}" class="btn btn-success">
+                    <i class="fas fa-cogs"></i> Run Auto-Restock Procedure
+                </a>
+            </div>
+            
+            <div class="alert alert-warning">
+                <i class="fas fa-bolt"></i> <strong>Trigger Demo:</strong> Updating price or quantity
+                will fire <code>track_price_change</code>, <code>trigger_price_alert</code>,
+                and <code>update_inventory_timestamp</code> triggers.
+            </div>
+
+            <div class="row">
+                <div class="col-lg-12 mb-4">
+                    <div class="card">
+                        <div class="card-header bg-secondary text-white">
+                            <h5 class="mb-0"><i class="fas fa-edit"></i> Quick Update (UPDATE)</h5>
+                        </div>
+                        <div class="card-body">
+                            <form action="{{ url_for('admin_update_inventory') }}" method="POST" class="row g-3 align-items-end">
+                                <div class="col-md-2">
+                                    <label class="form-label">Inventory ID</label>
+                                    <input type="text" name="inventory_id" class="form-control" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Product ID</label>
+                                    <input type="text" name="product_id" class="form-control" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Store ID</label>
+                                    <input type="text" name="store_id" class="form-control" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Quantity</label>
+                                    <input type="number" name="quantity" class="form-control" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label">Price (₹)</label>
+                                    <input type="number" step="0.01" name="price" class="form-control" required>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label">Discount (%)</label>
+                                    <input type="number" step="0.1" name="discount" class="form-control" required>
+                                </div>
+                                <div class="col-md-1 d-grid">
+                                    <button type="submit" class="btn btn-primary">Update</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-list"></i> Current Stock (READ)</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="table-responsive">
+                                <table class="table table-hover table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Inv. ID</th>
+                                            <th>Product ID</th>
+                                            <th>Store ID</th>
+                                            <th>Product</th>
+                                            <th>Store</th>
+                                            <th>Quantity</th>
+                                            <th>Price</th>
+                                            <th>Discount</th>
+                                            <th>Last Updated</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for item in inventory %}
+                                        <tr {% if item.quantity < 10 %}class="table-danger"{% endif %}>
+                                            <td><code>{{ item.inventory_id }}</code></td>
+                                            <td><code>{{ item.product_id }}</code></td>
+                                            <td><code>{{ item.store_id }}</code></td>
+                                            <td>{{ item.product_name }}</td>
+                                            <td>{{ item.store_name }}</td>
+                                            <td><strong>{{ item.quantity }}</strong></td>
+                                            <td>₹{{ "%.2f"|format(item.price_in_store) }}</td>
+                                            <td>{{ "%.1f"|format(item.discount) }}%</td>
+                                            <td>{{ item.last_updated }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

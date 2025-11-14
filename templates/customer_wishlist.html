@@ -1,0 +1,80 @@
+<!-- templates/customer_wishlist.html -->
+{% extends "base.html" %}
+
+{% block title %}My Wishlist{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <h2 class="mb-4"><i class="fas fa-heart"></i> My Wishlist</h2>
+
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle"></i> <strong>Join Query Demo:</strong> This page joins 
+        <code>Wishlist</code>, <code>WishlistProduct</code>, <code>Product</code>, and <code>Inventory</code> tables.
+    </div>
+
+    <div class="card">
+        <div class="card-body">
+            {% if wishlist_items %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Wishlist Name</th>
+                            <th>Product</th>
+                            <th>Brand</th>
+                            <th>Best Price</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in wishlist_items %}
+                        <tr>
+                            <td>{{ item.wishlist_name }}</td>
+
+                            <!-- 
+                            ===================================================================
+                            THIS IS THE FIX
+                            We must check if 'item.product_id' is not None.
+                            If it's None, it means the wishlist is empty.
+                            ===================================================================
+                            -->
+                            {% if item.product_id %}
+                                <td>
+                                    <a href="{{ url_for('customer_product_detail', product_id=item.product_id) }}">
+                                        <strong>{{ item.product_name }}</strong>
+                                    </a>
+                                </td>
+                                <td>{{ item.brand }}</td>
+                                <td>
+                                    {% if item.best_price %}
+                                    <span class="text-success">₹{{ "%.2f"|format(item.best_price) }}</span>
+                                    {% else %}
+                                    <span class="text-muted">N/A</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <a href="{{ url_for('remove_from_wishlist', wishlist_id=item.wishlist_id, product_id=item.product_id) }}" 
+                                       class="btn btn-sm btn-outline-danger" 
+                                       onclick="return confirm('Are you sure you want to remove this item?')">
+                                        <i class="fas fa-trash"></i> Remove
+                                    </a>
+                                </td>
+                            {% else %}
+                                <!-- This 'else' block handles the "empty wishlist" row -->
+                                <td colspan="4" class="text-muted text-center">
+                                    <em>No items in this wishlist yet.</em>
+                                </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <!-- This 'else' handles a user who has no wishlist at all -->
+            <p class="text-muted text-center mb-0">Your wishlist is empty.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

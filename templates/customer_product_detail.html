@@ -1,0 +1,207 @@
+{% extends "base.html" %}
+
+{% block title %}{{ product.product_name }}{% endblock %}
+
+{% block content %}
+<div class="container my-4">
+    <!-- Product Header -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-8">
+                    <h2 class="mb-1">{{ product.product_name }}</h2>
+                    <h5 class="text-muted mb-3">{{ product.brand }}</h5>
+                    <p class="mb-1"><strong>Category:</strong> {{ product.category_name }}</p>
+                    <p>{{ product.description }}</p>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <h5>
+                        Availability: 
+                        {% if availability == 'Available' %}
+                        <span class="badge bg-success"><i class="fas fa-check-circle"></i> {{ availability }}</span>
+                        {% else %}
+                        <span class="badge bg-danger"><i class="fas fa-times-circle"></i> {{ availability }}</span>
+                        {% endif %}
+                    </h5>
+                    <small class="text-muted">(Result from <code>IsProductAvailable()</code> function)</small>
+                    
+                    <form action="{{ url_for('add_to_wishlist') }}" method="POST" class="d-grid mt-3">
+                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                        <button type="submit" class="btn btn-outline-danger">
+                            <i class="fas fa-heart"></i> Add to Wishlist
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Store Price Comparison -->
+        <div class="col-lg-7">
+            <div class="card h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0"><i class="fas fa-store"></i> Store Price Comparison</h5>
+                    <small>Result from <code>ComparePrices()</code> procedure</small>
+                </div>
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0 align-middle">
+                        <thead>
+                            <tr>
+                                <th>Store</th>
+                                <th>Price</th>
+                                <th>Discount</th>
+                                <th>Final Price</th>
+                                <th>Set Alert</th>
+                                <th>Buy</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for store in store_prices %}
+                            <tr>
+                                <td><strong>{{ store.store_name }}</strong></td>
+                                <td>₹{{ "%.2f"|format(store.price_in_store) }}</td>
+                                <td>{{ "%.0f"|format(store.discount) }}%</td>
+                                <td>
+                                    {% set final_price = store.price_in_store * (1 - store.discount / 100) %}
+                                    <strong class="text-success">₹{{ "%.2f"|format(final_price) }}</strong>
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-warning" data-bs-toggle="modal" 
+                                            data-bs-target="#alertModal" 
+                                            data-store-id="{{ store.store_id }}" 
+                                            data-store-name="{{ store.store_name }}">
+                                        <i class="fas fa-bell"></i>
+                                    </button>
+                                </td>
+                                <!-- BUY NOW WITH DELIVERY OPTION -->
+                                <td>
+                                    <form action="{{ url_for('buy_product') }}" method="POST" class="d-flex flex-column gap-2">
+                                        <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                                        <input type="hidden" name="store_id" value="{{ store.store_id }}">
+                                        <input type="hidden" name="price_paid" value="{{ final_price }}">
+
+                                        {% if store.delivery_options %}
+                                            <select name="delivery_option" class="form-select form-select-sm" required>
+                                                {% if store.delivery_options == "Home Delivery" %}
+                                                    <option value="Home Delivery">Home Delivery</option>
+                                                {% elif store.delivery_options == "Pickup" %}
+                                                    <option value="Pickup">Pickup</option>
+                                                {% elif store.delivery_options == "Both" %}
+                                                    <option value="Home Delivery">Home Delivery</option>
+                                                    <option value="Pickup">Pickup</option>
+                                                {% endif %}
+                                            </select>
+                                            <button type="submit" class="btn btn-sm btn-success mt-1">
+                                                <i class="fas fa-shopping-cart"></i> Buy Now
+                                            </button>
+                                        {% else %}
+                                            <span class="text-danger small">No delivery option available</span>
+                                        {% endif %}
+                                    </form>
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted">Not available in any store.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Price History -->
+        <div class="col-lg-5">
+            <div class="card h-100">
+                <div class="card-header bg-secondary text-white">
+                    <h5 class="mb-0"><i class="fas fa-history"></i> Price History</h5>
+                    <small>From <code>PriceHistory</code> table (via Trigger)</small>
+                </div>
+                <div class="card-body">
+                    {% if price_history %}
+                    <ul class="list-group list-group-flush">
+                        {% for entry in price_history %}
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <small class="text-muted">{{ entry.changed_on.strftime('%Y-%m-%d') }}</small><br>
+                                ₹{{ "%.2f"|format(entry.old_price) }} → <strong>₹{{ "%.2f"|format(entry.new_price) }}</strong>
+                            </div>
+                            {% if entry.price_change < 0 %}
+                            <span class="badge bg-success">
+                                <i class="fas fa-arrow-down"></i> ₹{{ "%.2f"|format(-entry.price_change) }}
+                            </span>
+                            {% else %}
+                            <span class="badge bg-danger">
+                                <i class="fas fa-arrow-up"></i> ₹{{ "%.2f"|format(entry.price_change) }}
+                            </span>
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ul>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No price history available.</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Set Alert Modal -->
+<div class="modal fade" id="alertModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Set Price Alert</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('set_alert') }}" method="POST">
+                <div class="modal-body">
+                    <input type="hidden" name="product_id" value="{{ product.product_id }}">
+                    <input type="hidden" name="store_id" id="modal_store_id">
+                    <p>Set an alert for <strong>{{ product.product_name }}</strong> at <strong id="modal_store_name"></strong>.</p>
+                    
+                    <div class="mb-3">
+                        <label for="target_price" class="form-label">Notify me when price drops below:</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" step="0.01" class="form-control" id="target_price" name="target_price" required>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="notification_type" class="form-label">Notification Type:</label>
+                        <select class="form-select" name="notification_type" id="notification_type">
+                            <option value="email">Email</option>
+                            <option value="sms">SMS</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" class="btn btn-primary"><i class="fas fa-save"></i> Set Alert</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Script to pass store data to the alert modal
+var alertModal = document.getElementById('alertModal')
+alertModal.addEventListener('show.bs.modal', function (event) {
+  var button = event.relatedTarget
+  var storeId = button.getAttribute('data-store-id')
+  var storeName = button.getAttribute('data-store-name')
+  
+  var modalStoreId = alertModal.querySelector('#modal_store_id')
+  var modalStoreName = alertModal.querySelector('#modal_store_name')
+  
+  modalStoreId.value = storeId
+  modalStoreName.textContent = storeName
+})
+</script>
+{% endblock %}

@@ -1,0 +1,309 @@
+<!-- templates/admin_analytics.html -->
+{% extends "base.html" %}
+
+{% block title %}Admin - Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Add a subtle fade-in animation for the dashboard cards */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .card-animate {
+        animation: fadeIn 0.5s ease-out forwards;
+        opacity: 0; /* Start hidden */
+    }
+
+    /* Stagger the animation delays for a nice effect */
+    .card-animate:nth-child(1) { animation-delay: 0.1s; }
+    .card-animate:nth-child(2) { animation-delay: 0.2s; }
+    .card-animate:nth-child(3) { animation-delay: 0.3s; }
+    .card-animate:nth-child(4) { animation-delay: 0.4s; }
+
+    /* Ensure charts are responsive */
+    .chart-container {
+        position: relative;
+        height: 350px; /* Give charts a consistent height */
+        width: 100%;
+    }
+    
+    .card {
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.12);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 sidebar p-3">
+            <h5 class="mb-3">Admin Panel</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_users') }}">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_products') }}">
+                        <i class="fas fa-box"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_inventory') }}">
+                        <i class="fas fa-warehouse"></i> Inventory
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin_analytics') }}">
+                        <i class="fas fa-chart-pie"></i> Analytics
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Safely pass data to the template -->
+        <div class="col-md-10 p-4" 
+             id="analytics-container" 
+             data-category-stats='{{ category_stats | tojson }}'>
+
+            <h2 class="mb-4"><i class="fas fa-chart-pie"></i> Analytics Dashboard</h2>
+            
+            <div class="row">
+                <!-- Chart 1: Product Count (Doughnut Chart) -->
+                <div class="col-lg-5 mb-4 card-animate">
+                    <div class="card h-100">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0"><i class="fas fa-chart-pie"></i> Product Count by Category</h5>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="categoryPieChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart 2: Average Price (Bar Chart) -->
+                <div class="col-lg-7 mb-4 card-animate">
+                    <div class="card h-100">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0"><i class="fas fa-chart-bar"></i> Average Price by Category</h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="priceBarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chart 3: Average Discount (Polar Area Chart) -->
+                <div class="col-lg-7 mb-4 card-animate">
+                    <div class="card h-100">
+                        <div class="card-header bg-warning text-dark">
+                            <h5 class="mb-0"><i class="fas fa-star"></i> Average Discount by Category</h5>
+                        </div>
+                        <div class="card-body d-flex align-items-center justify-content-center">
+                            <div class="chart-container" style="height: 300px;">
+                                <canvas id="discountPolarChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Section 4: Customers Without Alerts -->
+                <div class="col-lg-5 mb-4 card-animate">
+                    <div class="card h-100">
+                        <div class="card-header bg-info text-dark">
+                            <h5 class="mb-0"><i class="fas fa-user-secret"></i> Customers Without Alerts</h5>
+                        </div>
+                        <div class="card-body">
+                            <h2 class="display-4 text-info text-center">{{ customers_no_alerts|length }}</h2>
+                            <p class="text-center text-muted">Customers have 0 active alerts</p>
+                            
+                            <hr>
+                            <p class_S="text-muted small text-center"><code>... WHERE customer_id NOT IN (SELECT ...)</code></p>
+                            <div class="table-responsive" style="max-height: 200px; overflow-y: auto;">
+                                <table class="table table-sm table-striped">
+                                    <thead>
+                                        <tr>
+                                            <th>ID</th>
+                                            <th>Name</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for customer in customers_no_alerts %}
+                                        <tr>
+                                            <td>{{ customer.customer_id }}</td>
+                                            <td>{{ customer.first_name }} {{ customer.last_name }}</td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+
+{% block extra_js %}
+<!-- 1. Import the Chart.js library -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+
+        // 2. Get and parse the data
+        const container = document.getElementById('analytics-container');
+        const jsonData = container.dataset.categoryStats; 
+        
+        let categoryData;
+        try {
+            categoryData = JSON.parse(jsonData);
+        } catch (e) {
+            console.error("Failed to parse category data:", e, jsonData);
+            return;
+        }
+
+        // 3. Process data into arrays
+        const labels = categoryData.map(item => item.category_name);
+        const productCounts = categoryData.map(item => item.total_products);
+        const avgPrices = categoryData.map(item => item.avg_price);
+        const avgDiscounts = categoryData.map(item => item.avg_discount); // New data
+
+        // Define color palettes
+        const colorPalette1 = [
+            'rgba(79, 70, 229, 0.8)',  // Primary
+            'rgba(16, 185, 129, 0.8)', // Success
+            'rgba(245, 158, 11, 0.8)', // Warning
+            'rgba(30, 144, 255, 0.8)', // Dodger Blue
+            'rgba(239, 68, 68, 0.8)',  // Danger
+            'rgba(107, 114, 128, 0.8)' // Gray
+        ];
+        const colorPalette2 = [
+            'rgba(79, 70, 229, 0.7)',
+            'rgba(16, 185, 129, 0.7)',
+            'rgba(245, 158, 11, 0.7)',
+            'rgba(30, 144, 255, 0.7)',
+            'rgba(239, 68, 68, 0.7)',
+            'rgba(107, 114, 128, 0.7)'
+        ];
+
+        // 4. Create the Doughnut Chart
+        const pieCtx = document.getElementById('categoryPieChart').getContext('2d');
+        new Chart(pieCtx, {
+            type: 'doughnut',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Total Products',
+                    data: productCounts,
+                    backgroundColor: colorPalette1,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    }
+                }
+            }
+        });
+
+        // 5. Create the Bar Chart
+        const barCtx = document.getElementById('priceBarChart').getContext('2d');
+        new Chart(barCtx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average Price (₹)',
+                    data: avgPrices,
+                    backgroundColor: colorPalette2,
+                    borderColor: colorPalette1,
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: value => '₹' + value
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: context => `Average Price: ₹${context.parsed.y.toFixed(2)}`
+                        }
+                    }
+                }
+            }
+        });
+
+        // 6. Create the new Polar Area Chart
+        const polarCtx = document.getElementById('discountPolarChart').getContext('2d');
+        new Chart(polarCtx, {
+            type: 'polarArea',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Average Discount (%)',
+                    data: avgDiscounts,
+                    backgroundColor: colorPalette2,
+                    hoverOffset: 8
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'bottom',
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: context => `Avg. Discount: ${context.parsed.r.toFixed(1)}%`
+                        }
+                    }
+                }
+            }
+        });
+
+    });
+</script>
+{% endblock %}

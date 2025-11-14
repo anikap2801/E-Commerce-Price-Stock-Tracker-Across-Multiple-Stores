@@ -1,0 +1,175 @@
+<!-- templates/admin_dashboard.html -->
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2 sidebar p-3">
+            <h5 class="mb-3">Admin Panel</h5>
+            <ul class="nav flex-column">
+                <li class="nav-item">
+                    <a class="nav-link active" href="{{ url_for('admin_dashboard') }}">
+                        <i class="fas fa-tachometer-alt"></i> Dashboard
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_users') }}">
+                        <i class="fas fa-users"></i> Users
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_products') }}">
+                        <i class="fas fa-box"></i> Products
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_inventory') }}">
+                        <i class="fas fa-warehouse"></i> Inventory
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" href="{{ url_for('admin_analytics') }}">
+                        <i class="fas fa-chart-pie"></i> Analytics
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-10 p-4">
+            <h2 class="mb-4"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</h2>
+            
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i> <strong>Aggregate Queries Used:</strong> 
+                COUNT(*), SUM(), AVG() to display statistics below
+            </div>
+
+            <!-- Statistics Cards (Aggregate Queries) -->
+            <div class="row mb-4">
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Total Customers</h6>
+                                <h3 class="mb-0">{{ total_customers }}</h3>
+                                <small>COUNT(*) FROM Customer</small>
+                            </div>
+                            <i class="fas fa-users fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Total Products</h6>
+                                <h3 class="mb-0">{{ total_products }}</h3>
+                                <small>COUNT(*) FROM Product</small>
+                            </div>
+                            <i class="fas fa-box fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Total Stores</h6>
+                                <h3 class="mb-0">{{ total_stores }}</h3>
+                                <small>COUNT(*) FROM Store</small>
+                            </div>
+                            <i class="fas fa-store fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-3 mb-3">
+                    <div class="stat-card" style="background: linear-gradient(135deg, #43e97b 0%, #38f9d7 100%);">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="mb-1">Active Alerts</h6>
+                                <h3 class="mb-0">{{ active_alerts }}</h3>
+                                <small>COUNT WHERE status='active'</small>
+                            </div>
+                            <i class="fas fa-bell fa-3x opacity-50"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="row mb-4">
+                <div class="col-md-12">
+                    <div class="card">
+                        <div class="card-header bg-success text-white">
+                            <h5 class="mb-0">
+                                <i class="fas fa-warehouse"></i> Total Inventory
+                                <span class="float-end">SUM(quantity) FROM Inventory</span>
+                            </h5>
+                        </div>
+                        <div class="card-body text-center">
+                            <h2 class="display-4 text-success">{{ total_inventory }} Units</h2>
+                            <p class="text-muted">Total stock across all stores</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Recent Price Changes -->
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-history"></i> Recent Price Changes
+                        <small class="float-end">Logged by track_price_change Trigger</small>
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_changes %}
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>Product</th>
+                                    <th>Old Price</th>
+                                    <th>New Price</th>
+                                    <th>Change</th>
+                                    <th>Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for change in recent_changes %}
+                                <tr>
+                                    <td><strong>{{ change.product_name }}</strong></td>
+                                    <td>₹{{ "%.2f"|format(change.old_price) }}</td>
+                                    <td>₹{{ "%.2f"|format(change.new_price) }}</td>
+                                    <td>
+                                        {% set diff = change.new_price - change.old_price %}
+                                        {% if diff < 0 %}
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-arrow-down"></i> ₹{{ "%.2f"|format(-diff) }}
+                                        </span>
+                                        {% else %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-arrow-up"></i> ₹{{ "%.2f"|format(diff) }}
+                                        </span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ change.changed_on }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                    <p class="text-muted text-center mb-0">No recent price changes</p>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
